@@ -216,6 +216,12 @@ describe("update-cli", () => {
 
   const runRestartFallbackScenario = async (params: { daemonInstall: "ok" | "fail" }) => {
     vi.mocked(runGatewayUpdate).mockResolvedValue(makeOkUpdateResult());
+    // Mock runCommandWithTimeout to fail so refreshGatewayServiceEnv falls back to runDaemonInstall
+    vi.mocked(runCommandWithTimeout).mockResolvedValue({
+      stdout: "",
+      stderr: "install failed",
+      code: 1,
+    });
     if (params.daemonInstall === "fail") {
       vi.mocked(runDaemonInstall).mockRejectedValueOnce(new Error("refresh failed"));
     } else {
@@ -227,6 +233,7 @@ describe("update-cli", () => {
 
     await updateCommand({});
 
+    // Verify fallback was attempted
     expect(runDaemonInstall).toHaveBeenCalledWith({
       force: true,
       json: undefined,
